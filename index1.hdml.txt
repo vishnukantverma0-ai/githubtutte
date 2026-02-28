@@ -1,0 +1,46 @@
+// High-level logic for the Hand-Controlled Particle System
+import * as THREE from 'three';
+import { Hands } from '@mediapipe/hands';
+
+// 1. Setup Camera & Scene
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+const renderer = new THREE.WebGLRenderer();
+
+// 2. Create the Particle System
+const particleCount = 5000;
+const geometry = new THREE.BufferGeometry();
+const positions = new Float32Array(particleCount * 3); // Current positions
+const targetPositions = new Float32Array(particleCount * 3); // Template positions
+
+// Fill initial positions (e.g., a random cloud)
+for (let i = 0; i < particleCount * 3; i++) {
+    positions[i] = (Math.random() - 0.5) * 10;
+}
+geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+const material = new THREE.PointsMaterial({ size: 0.05, vertexColors: true });
+const particleSystem = new THREE.Points(geometry, material);
+scene.add(particleSystem);
+
+// 3. Hand Tracking Integration
+const hands = new Hands({locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`});
+hands.onResults((results) => {
+    if (results.multiHandLandmarks.length > 0) {
+        const hand = results.multiHandLandmarks[0];
+        
+        // GESTURE LOGIC:
+        // Index & Thumb distance < 0.05? -> Pinch (Contract Particles)
+        // Hand wide open? -> Expand (Firework effect)
+        // Hand rotation? -> Rotate the Saturn rings
+        
+        updateParticles(hand);
+    }
+});
+
+// 4. Animation Loop
+function animate() {
+    requestAnimationFrame(animate);
+    // Smoothly interpolate positions toward targetPositions
+    renderer.render(scene, camera);
+}
